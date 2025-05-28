@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.CursosEcom" parent="Theme.Material3.DayNight">
+        <item name="android:windowSplashScreenBackground">@color/splash_yellow</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/logo</item>
+    </style>
+</resources>
+
