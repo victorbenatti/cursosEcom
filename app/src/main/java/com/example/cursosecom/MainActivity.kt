@@ -2,6 +2,8 @@ package com.example.cursosecom
 
 import android.graphics.Paint.Align
 import android.os.Bundle
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -25,9 +27,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -41,7 +45,14 @@ import com.example.cursosecom.ui.theme.CursosEcomTheme
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.style.TextAlign
 import com.example.cursosecom.R
-
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.io.OutputStreamWriter
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,6 +76,8 @@ fun LoginScreen(navController: NavController) {
     val email = remember { mutableStateOf("") }
     val senha = remember { mutableStateOf("") }
     val mensagem = remember { mutableStateOf("") }
+    val contexto = LocalContext.current
+    val escopo    = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
@@ -124,12 +137,28 @@ fun LoginScreen(navController: NavController) {
         // Validação Login (Local)
         Button(
             onClick = {
-                if (email.value.isBlank() || senha.value.isBlank()) {
-                    mensagem.value = "Preencha todos os campos."
-                } else if (email.value == "admin@email.com" && senha.value == "123456") {
-                    mensagem.value = "Login válido. Redirecionar para tela inicial."
-                } else {
-                    mensagem.value = "Credenciais inválidas."
+                escopo.launch {
+                    if (email.value.isBlank() || senha.value.isBlank()) {
+                        mensagem.value = "Preencha todos os campos."
+                        return@launch
+                    }
+                    val resposta = enviarLogin(email.value, senha.value)
+                    // parse do JSON
+                    try {
+                        val obj = JSONObject(resposta)
+                        val status = obj.getString("status")
+                        val msg    = obj.getString("mensagem")
+                        mensagem.value = msg
+                        if (status == "ok") {
+                            // sucesso: exibe Toast e navega
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(contexto, msg, Toast.LENGTH_SHORT).show()
+                                // navController.navigate("telaPrincipal")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        mensagem.value = "Resposta inválida do servidor."
+                    }
                 }
             },
             modifier = Modifier
@@ -147,7 +176,7 @@ fun LoginScreen(navController: NavController) {
 
         Text(
             text = mensagem.value,
-            color = if (mensagem.value == "Login válido. Redirecionar para tela inicial.") Color(0xFF4CAF50) else Color.Red,
+            color = if (mensagem.value == "Login realizado com sucesso") Color(0xFF4CAF50) else Color.Red,
             fontSize = 14.sp,
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
@@ -174,6 +203,43 @@ fun LoginScreen(navController: NavController) {
         }
     }
 }
+
+suspend fun enviarLogin(
+    email: String,
+    senha: String
+): String = withContext(Dispatchers.IO) {
+    var conn: HttpURLConnection? = null
+    try {
+        val url = URL("http://10.0.2.2:80/api-cursos/login.php")
+        conn = (url.openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            doOutput = true
+            connectTimeout = 15_000
+            readTimeout    = 15_000
+            setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
+        }
+
+        val dados = "email=${URLEncoder.encode(email, "UTF-8")}" +
+                "&senha=${URLEncoder.encode(senha, "UTF-8")}"
+
+        conn.outputStream.bufferedWriter().use { writer ->
+            writer.write(dados)
+            writer.flush()
+        }
+
+        val code = conn.responseCode
+        Log.d("Login", "HTTP response code: $code")
+
+        val stream = if (code in 200..299) conn.inputStream else conn.errorStream
+        return@withContext stream.bufferedReader().use { it.readText() }
+    } catch (e: Exception) {
+        Log.e("Login", "Erro ao enviar login", e)
+        return@withContext "{\"status\":\"erro\",\"mensagem\":\"Falha de rede\"}"
+    } finally {
+        conn?.disconnect()
+    }
+}
+
 
 @Composable
 fun RegisterScreen(navController: NavController) {
@@ -286,8 +352,32 @@ fun RegisterScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        val contexto = LocalContext.current
+        val escopo = rememberCoroutineScope()
+        val mensagem = remember { mutableStateOf("") }
+
         Button(
-            onClick = { /* login */ },
+            onClick = {
+                escopo.launch {
+                    val resposta = enviarCadastro(nome.value, email.value, senha.value)
+                    // Toast.makeText(contexto, "Resposta crua: $resposta", Toast.LENGTH_LONG).show()
+
+                    try {
+                        val json = JSONObject(resposta)
+                        val status = json.getString("status")
+                        val mensagemServidor = json.getString("mensagem")
+
+                        Toast.makeText(contexto, mensagemServidor, Toast.LENGTH_LONG).show()
+
+                        if (status == "ok") {
+                            navController.navigate("login")
+                        }
+                    } catch (e: Exception) {
+                        Toast.makeText(contexto, "Erro ao cadastrar. Tente novamente.", Toast.LENGTH_LONG).show()
+                    }
+
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
@@ -321,6 +411,48 @@ fun RegisterScreen(navController: NavController) {
     }
 
 }
+
+suspend fun enviarCadastro(
+    nome: String,
+    email: String,
+    senha: String
+): String = withContext(Dispatchers.IO) {
+    var conn: HttpURLConnection? = null
+    try {
+        val url = URL("http://10.0.2.2:80/api-cursos/cadastro.php")
+        conn = (url.openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            doOutput = true
+            connectTimeout = 15_000
+            readTimeout = 15_000
+            setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
+        }
+
+        // monta e envia o body
+        val dados = "nome=${URLEncoder.encode(nome, "UTF-8")}" +
+                "&email=${URLEncoder.encode(email, "UTF-8")}" +
+                "&senha=${URLEncoder.encode(senha, "UTF-8")}"
+
+        conn.outputStream.bufferedWriter().use { writer ->
+            writer.write(dados)
+            writer.flush()
+        }
+
+        // lê o código HTTP
+        val code = conn.responseCode
+        Log.d("Cadastro", "HTTP response code: $code")
+
+        // decide de onde ler o stream
+        val stream = if (code in 200..299) conn.inputStream else conn.errorStream
+        return@withContext stream.bufferedReader().use { it.readText() }
+    } catch (e: Exception) {
+        Log.e("Cadastro", "Falha ao enviar cadastro", e)
+        return@withContext "erro"
+    } finally {
+        conn?.disconnect()
+    }
+}
+
 
 @Preview(showBackground = true)
 @Composable
