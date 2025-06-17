@@ -88,6 +88,9 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
 
+// Nova tela (com barra de navegação)
+import com.example.cursosecom.ui.main.MainScreen
+
 // -----------------------------------------------------------------
 // FIM DOS IMPORTS
 
@@ -100,17 +103,19 @@ class MainActivity : ComponentActivity() {
             CursosEcomTheme {
                 val navController = rememberNavController()
 
+                // ALTERADO: O NavHost agora tem a rota "main_screen"
                 NavHost(navController = navController, startDestination = "login") {
                     composable("login") { LoginScreen(navController) }
                     composable("cadastro") { RegisterScreen(navController) }
-                    composable("home") { HomeScreen(navController) }
+
+                    // NOVO: Rota para a tela principal que contém a bottom bar
+                    composable("main_screen") { MainScreen(navControllerApp = navController) }
+
                     composable(
                         route = "detalhes_curso/{cursoId}",
                         arguments = listOf(navArgument("cursoId") { type = NavType.IntType })
                     ) { backStackEntry ->
-                        // Extrai o ID do curso dos argumentos da rota
                         val cursoId = backStackEntry.arguments?.getInt("cursoId")
-                        // Garante que o ID não é nulo antes de chamar a tela
                         if (cursoId != null) {
                             CursoDetalheScreen(navController = navController, cursoId = cursoId)
                         }
@@ -201,7 +206,8 @@ fun LoginScreen(navController: NavController) {
                         if (status == "ok") {
                             withContext(Dispatchers.Main) {
                                 Toast.makeText(contexto, msg, Toast.LENGTH_SHORT).show()
-                                navController.navigate("home") {
+                                // ALTERADO: Navega para "main_screen" em vez de "home"
+                                navController.navigate("main_screen") {
                                     popUpTo("login") { inclusive = true }
                                 }
                             }
