@@ -100,7 +100,7 @@ class MainActivity : ComponentActivity() {
             CursosEcomTheme {
                 val navController = rememberNavController()
 
-                NavHost(navController = navController, startDestination = "home") {
+                NavHost(navController = navController, startDestination = "login") {
                     composable("login") { LoginScreen(navController) }
                     composable("cadastro") { RegisterScreen(navController) }
                     composable("home") { HomeScreen(navController) }
