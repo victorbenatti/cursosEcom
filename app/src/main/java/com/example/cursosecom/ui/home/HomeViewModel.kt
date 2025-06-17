@@ -6,16 +6,21 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cursosecom.data.model.Curso
+import com.example.cursosecom.data.model.CursoDetalhado
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
+import retrofit2.http.Query
 
 // --- Interface para definir os endpoints da API com Retrofit ---
 interface ApiService {
     @GET("listar_cursos.php") // O caminho do seu script no servidor
     suspend fun getCursos(): List<Curso>
+
+    @GET("detalhes_curso.php")
+    suspend fun getCursoDetalhes(@Query("id") cursoId: Int): CursoDetalhado
 }
 
 // --- Objeto para criar uma instância única do Retrofit ---

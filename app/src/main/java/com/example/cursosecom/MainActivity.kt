@@ -64,15 +64,18 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 // Imports de Navegação
 import androidx.navigation.NavController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 
 // Biblioteca de Imagem (Coil)
 import coil.compose.AsyncImage
 
 // Suas classes de Dados e ViewModel
 import com.example.cursosecom.data.model.Curso
+import com.example.cursosecom.ui.detalhe.CursoDetalheScreen
 import com.example.cursosecom.ui.home.HomeViewModel
 import com.example.cursosecom.ui.theme.CursosEcomTheme
 
@@ -101,6 +104,17 @@ class MainActivity : ComponentActivity() {
                     composable("login") { LoginScreen(navController) }
                     composable("cadastro") { RegisterScreen(navController) }
                     composable("home") { HomeScreen(navController) }
+                    composable(
+                        route = "detalhes_curso/{cursoId}",
+                        arguments = listOf(navArgument("cursoId") { type = NavType.IntType })
+                    ) { backStackEntry ->
+                        // Extrai o ID do curso dos argumentos da rota
+                        val cursoId = backStackEntry.arguments?.getInt("cursoId")
+                        // Garante que o ID não é nulo antes de chamar a tela
+                        if (cursoId != null) {
+                            CursoDetalheScreen(navController = navController, cursoId = cursoId)
+                        }
+                    }
                 }
             }
         }
@@ -519,6 +533,8 @@ fun HomeScreen(
     val isLoading = homeViewModel.isLoading.value
     val error = homeViewModel.error.value
 
+
+
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("Cursos Disponíveis") })
@@ -552,8 +568,8 @@ fun HomeScreen(
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(cursos) { curso ->
                         CursoCard(curso = curso, onClick = {
-                            // Futuramente, navegar para a tela de detalhes do curso
-                            // navController.navigate("detalhes_curso/${curso.id}")
+                            // AQUI ESTÁ A MUDANÇA: Navega para a nova rota passando o ID do curso
+                            navController.navigate("detalhes_curso/${curso.id}")
                         })
                     }
                 }
