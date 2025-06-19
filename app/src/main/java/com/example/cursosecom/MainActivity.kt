@@ -108,8 +108,25 @@ class MainActivity : ComponentActivity() {
                     composable("login") { LoginScreen(navController) }
                     composable("cadastro") { RegisterScreen(navController) }
 
-                    // NOVO: Rota para a tela principal que contém a bottom bar
-                    composable("main_screen") { MainScreen(navControllerApp = navController) }
+                    // ALTERADO: A rota agora tem um argumento {userId}
+                    composable(
+                        route = "main_screen/{userId}",
+                        arguments = listOf(navArgument("userId") { type = NavType.IntType })
+                    ) { backStackEntry ->
+                        // Extrai o ID do usuário dos argumentos
+                        val userId = backStackEntry.arguments?.getInt("userId") ?: 0
+                        MainScreen(navControllerApp = navController, userId = userId)
+                    }
+
+                    // ALTERADO: A rota agora tem um argumento {userId}
+                    composable(
+                        route = "main_screen/{userId}",
+                        arguments = listOf(navArgument("userId") { type = NavType.IntType })
+                    ) { backStackEntry ->
+                        // Extrai o ID do usuário dos argumentos
+                        val userId = backStackEntry.arguments?.getInt("userId") ?: 0
+                        MainScreen(navControllerApp = navController, userId = userId)
+                    }
 
                     composable(
                         route = "detalhes_curso/{cursoId}",
@@ -193,27 +210,34 @@ fun LoginScreen(navController: NavController) {
         Button(
             onClick = {
                 escopo.launch {
-                    if (email.value.isBlank() || senha.value.isBlank()) {
-                        mensagem.value = "Preencha todos os campos."
-                        return@launch
-                    }
+                    // ... (validações de campos em branco) ...
                     val resposta = enviarLogin(email.value, senha.value)
                     try {
                         val obj = JSONObject(resposta)
                         val status = obj.getString("status")
-                        val msg    = obj.getString("mensagem")
-                        mensagem.value = msg
+
                         if (status == "ok") {
+                            // NOVO: Pega o objeto "usuario" e extrai o ID
+                            val usuarioJson = obj.getJSONObject("usuario")
+                            val usuarioId = usuarioJson.getInt("id_usuario")
+
+                            // Em um app real, você salvaria os dados do usuário (SharedPreferences/DataStore)
+                            // Por agora, vamos passar o ID diretamente na navegação.
+
                             withContext(Dispatchers.Main) {
-                                Toast.makeText(contexto, msg, Toast.LENGTH_SHORT).show()
-                                // ALTERADO: Navega para "main_screen" em vez de "home"
-                                navController.navigate("main_screen") {
+                                Toast.makeText(contexto, obj.getString("mensagem"), Toast.LENGTH_SHORT).show()
+                                // ALTERADO: Navega para a tela principal passando o ID do usuário
+                                navController.navigate("main_screen/$usuarioId") {
                                     popUpTo("login") { inclusive = true }
                                 }
                             }
+                        } else {
+                            val msg = obj.getString("mensagem")
+                            mensagem.value = msg
                         }
                     } catch (e: Exception) {
                         mensagem.value = "Resposta inválida do servidor."
+
                         Log.e("LoginScreen", "Erro ao parsear JSON: ${e.localizedMessage}")
                     }
                 }

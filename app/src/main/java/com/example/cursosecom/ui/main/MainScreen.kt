@@ -22,7 +22,7 @@ import com.example.cursosecom.ui.mycourses.MeusCursosScreen
 import com.example.cursosecom.ui.profile.PerfilScreen
 
 @Composable
-fun MainScreen(navControllerApp: NavController) {
+fun MainScreen(navControllerApp: NavController, userId: Int) {
     val navControllerBottom = rememberNavController()
     val items = listOf(
         BottomNavItem.Home,
@@ -62,7 +62,7 @@ fun MainScreen(navControllerApp: NavController) {
         ) {
             composable(BottomNavItem.Home.route) { HomeScreen(navController = navControllerApp) }
             composable(BottomNavItem.MyCourses.route) { MeusCursosScreen() }
-            composable(BottomNavItem.Profile.route) { PerfilScreen() }
+            composable(BottomNavItem.Profile.route) { PerfilScreen(navController = navControllerApp, userId = userId) }
         }
     }
 }

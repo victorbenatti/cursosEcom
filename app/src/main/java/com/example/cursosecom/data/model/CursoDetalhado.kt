@@ -9,14 +9,19 @@ data class CursoDetalhado(
     val titulo: String,
     @SerializedName("subtitulo_curso")
     val subtitulo: String?,
-    @SerializedName("descricao_detalhada_curso") // Adicionamos a descrição
+    @SerializedName("descricao_detalhada_curso")
     val descricao: String?,
     @SerializedName("preco_curso")
     val preco: Double,
+
+    // NOVO: Adicione esta linha
+    @SerializedName("nivel_dificuldade")
+    val nivelDificuldade: String,
+
     @SerializedName("nome_instrutor")
     val nomeInstrutor: String,
     @SerializedName("url_imagem_capa_curso")
     val urlImagem: String?,
-    @SerializedName("aulas") // A lista de aulas que vem da API
+    @SerializedName("aulas")
     val aulas: List<Aula>
 )

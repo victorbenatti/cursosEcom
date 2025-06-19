@@ -129,7 +129,7 @@ fun CursoDetalheScreen(
                         ) {
                             InfoPill(icon = Icons.Default.Person, text = curso.nomeInstrutor)
                             // A API e o Model precisariam ter o nível, mas como exemplo:
-                            InfoPill(icon = Icons.Default.SignalCellularAlt, text = "Todos os Níveis")
+                            InfoPill(icon = Icons.Default.SignalCellularAlt, text = curso.nivelDificuldade)
                         }
                     }
 

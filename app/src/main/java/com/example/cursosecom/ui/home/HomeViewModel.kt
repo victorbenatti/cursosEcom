@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cursosecom.data.model.Curso
 import com.example.cursosecom.data.model.CursoDetalhado
+import com.example.cursosecom.data.model.PerfilUsuario
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
 import retrofit2.Retrofit
@@ -21,6 +22,9 @@ interface ApiService {
 
     @GET("detalhes_curso.php")
     suspend fun getCursoDetalhes(@Query("id") cursoId: Int): CursoDetalhado
+
+    @GET("perfil.php")
+    suspend fun getPerfilUsuario(@Query("usuario_id") usuarioId: Int): PerfilUsuario
 }
 
 // --- Objeto para criar uma instância única do Retrofit ---
