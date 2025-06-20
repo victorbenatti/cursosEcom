@@ -2,51 +2,21 @@ package com.example.cursosecom
 
 // IMPORTS NECESSÁRIOS PARA TUDO FUNCIONAR
 // -----------------------------------------------------------------
-// Imports básicos do Android e de ferramentas
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-
-// Imports do Jetpack Compose para Layout
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-
-// Imports do Jetpack Compose para Componentes (Material 3)
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-
-// Imports do Jetpack Compose para o Runtime (estados, etc.)
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-
-// Imports para Modifiers e UI
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddShoppingCart
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -55,31 +25,28 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-// Imports de Arquitetura (ViewModel)
 import androidx.lifecycle.viewmodel.compose.viewModel
-
-// Imports de Navegação
 import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-
-// Biblioteca de Imagem (Coil)
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Badge
+import androidx.compose.material3.IconButton
 import coil.compose.AsyncImage
-
-// Suas classes de Dados e ViewModel
 import com.example.cursosecom.data.model.Curso
+import com.example.cursosecom.ui.cart.CarrinhoScreen
+import com.example.cursosecom.ui.cart.CarrinhoViewModel
 import com.example.cursosecom.ui.detalhe.CursoDetalheScreen
 import com.example.cursosecom.ui.home.HomeViewModel
+import com.example.cursosecom.ui.main.MainScreen
 import com.example.cursosecom.ui.theme.CursosEcomTheme
-
-// Imports do Kotlin e Java
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -87,9 +54,6 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
-
-// Nova tela (com barra de navegação)
-import com.example.cursosecom.ui.main.MainScreen
 
 // -----------------------------------------------------------------
 // FIM DOS IMPORTS
@@ -103,53 +67,49 @@ class MainActivity : ComponentActivity() {
             CursosEcomTheme {
                 val navController = rememberNavController()
 
-                // ALTERADO: O NavHost agora tem a rota "main_screen"
+                // NavHost principal da aplicação
                 NavHost(navController = navController, startDestination = "login") {
                     composable("login") { LoginScreen(navController) }
                     composable("cadastro") { RegisterScreen(navController) }
 
-                    // ALTERADO: A rota agora tem um argumento {userId}
                     composable(
                         route = "main_screen/{userId}",
                         arguments = listOf(navArgument("userId") { type = NavType.IntType })
                     ) { backStackEntry ->
-                        // Extrai o ID do usuário dos argumentos
-                        val userId = backStackEntry.arguments?.getInt("userId") ?: 0
-                        MainScreen(navControllerApp = navController, userId = userId)
-                    }
-
-                    // ALTERADO: A rota agora tem um argumento {userId}
-                    composable(
-                        route = "main_screen/{userId}",
-                        arguments = listOf(navArgument("userId") { type = NavType.IntType })
-                    ) { backStackEntry ->
-                        // Extrai o ID do usuário dos argumentos
                         val userId = backStackEntry.arguments?.getInt("userId") ?: 0
                         MainScreen(navControllerApp = navController, userId = userId)
                     }
 
                     composable(
-                        // A ROTA AGORA ACEITA UM NOVO PARÂMETRO OPCIONAL
-                        route = "detalhes_curso/{cursoId}?possuiCurso={possuiCurso}",
+                        "carrinho_screen/{userId}",
+                        arguments = listOf(navArgument("userId") { type = NavType.IntType })
+                    ) { backStackEntry ->
+                        val userId = backStackEntry.arguments?.getInt("userId") ?: 0
+                        CarrinhoScreen(navController = navController, userId = userId)
+                    }
+
+                    // ROTA DE DETALHES CORRIGIDA
+                    composable(
+                        route = "detalhes_curso/{cursoId}/{userId}?possuiCurso={possuiCurso}",
                         arguments = listOf(
                             navArgument("cursoId") { type = NavType.IntType },
-                            // Define o novo argumento, que é booleano e tem valor padrão 'false'
+                            navArgument("userId") { type = NavType.IntType },
                             navArgument("possuiCurso") {
                                 type = NavType.BoolType
                                 defaultValue = false
                             }
                         )
                     ) { backStackEntry ->
-                        // Extrai os argumentos da rota
                         val cursoId = backStackEntry.arguments?.getInt("cursoId") ?: 0
+                        val userId = backStackEntry.arguments?.getInt("userId") ?: 0
                         val possuiCurso = backStackEntry.arguments?.getBoolean("possuiCurso") ?: false
 
-                        // Passa a nova informação para a tela de detalhes
                         if (cursoId != 0) {
                             CursoDetalheScreen(
                                 navController = navController,
                                 cursoId = cursoId,
-                                possuiCurso = possuiCurso // Passando o novo parâmetro
+                                userId = userId,
+                                possuiCurso = possuiCurso
                             )
                         }
                     }
@@ -159,9 +119,12 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+// O resto das funções (LoginScreen, RegisterScreen, etc.) continuam abaixo...
+// Apenas a HomeScreen precisa de um pequeno ajuste na navegação.
+
 @Composable
 fun LoginScreen(navController: NavController) {
-    // Código da LoginScreen (sem alterações)
+    // ... (o código da LoginScreen permanece o mesmo)
     val email = remember { mutableStateOf("") }
     val senha = remember { mutableStateOf("") }
     val mensagem = remember { mutableStateOf("") }
@@ -226,23 +189,21 @@ fun LoginScreen(navController: NavController) {
         Button(
             onClick = {
                 escopo.launch {
-                    // ... (validações de campos em branco) ...
+                    if (email.value.isBlank() || senha.value.isBlank()) {
+                        mensagem.value = "Preencha todos os campos."
+                        return@launch
+                    }
                     val resposta = enviarLogin(email.value, senha.value)
                     try {
                         val obj = JSONObject(resposta)
                         val status = obj.getString("status")
 
                         if (status == "ok") {
-                            // NOVO: Pega o objeto "usuario" e extrai o ID
                             val usuarioJson = obj.getJSONObject("usuario")
                             val usuarioId = usuarioJson.getInt("id_usuario")
 
-                            // Em um app real, você salvaria os dados do usuário (SharedPreferences/DataStore)
-                            // Por agora, vamos passar o ID diretamente na navegação.
-
                             withContext(Dispatchers.Main) {
                                 Toast.makeText(contexto, obj.getString("mensagem"), Toast.LENGTH_SHORT).show()
-                                // ALTERADO: Navega para a tela principal passando o ID do usuário
                                 navController.navigate("main_screen/$usuarioId") {
                                     popUpTo("login") { inclusive = true }
                                 }
@@ -253,7 +214,6 @@ fun LoginScreen(navController: NavController) {
                         }
                     } catch (e: Exception) {
                         mensagem.value = "Resposta inválida do servidor."
-
                         Log.e("LoginScreen", "Erro ao parsear JSON: ${e.localizedMessage}")
                     }
                 }
@@ -302,7 +262,7 @@ fun LoginScreen(navController: NavController) {
 }
 
 suspend fun enviarLogin(email: String, senha: String): String = withContext(Dispatchers.IO) {
-    // Código da função enviarLogin (sem alterações)
+    // ... (código sem alterações)
     var conn: HttpURLConnection? = null
     try {
         val url = URL("http://10.0.2.2:80/api-cursos/login.php")
@@ -337,7 +297,7 @@ suspend fun enviarLogin(email: String, senha: String): String = withContext(Disp
 
 @Composable
 fun RegisterScreen(navController: NavController) {
-    // Código da RegisterScreen (sem alterações)
+    // ... (código sem alterações)
     val nome = remember { mutableStateOf("") }
     val email = remember { mutableStateOf("") }
     val senha = remember { mutableStateOf("") }
@@ -534,7 +494,7 @@ fun RegisterScreen(navController: NavController) {
 }
 
 suspend fun enviarCadastro(nome: String, email: String, senha: String): String = withContext(Dispatchers.IO) {
-    // Código da função enviarCadastro (sem alterações)
+    // ... (código sem alterações)
     var conn: HttpURLConnection? = null
     try {
         val url = URL("http://10.0.2.2:80/api-cursos/cadastro.php")
@@ -573,19 +533,48 @@ suspend fun enviarCadastro(nome: String, email: String, senha: String): String =
 @Composable
 fun HomeScreen(
     navController: NavController,
-    homeViewModel: HomeViewModel = viewModel()
+    userId: Int,
+    homeViewModel: HomeViewModel = viewModel(),
+    carrinhoViewModel: CarrinhoViewModel = viewModel()
 ) {
     val cursos = homeViewModel.cursosState.value
     val isLoading = homeViewModel.isLoading.value
     val error = homeViewModel.error.value
+    val context = LocalContext.current
 
-
+    // NOVO: A lógica do carrinho agora vive aqui
+    LaunchedEffect(key1 = userId) {
+        if (userId != 0) {
+            carrinhoViewModel.fetchItensCarrinho(userId)
+        }
+    }
+    val totalItensCarrinho = carrinhoViewModel.totalItens.value
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Cursos Disponíveis") })
+            TopAppBar(
+                title = { Text("Cursos Disponíveis") },
+                // NOVO: Ações na barra superior
+                actions = {
+                    BadgedBox(
+                        badge = {
+                            if (totalItensCarrinho > 0) {
+                                Badge { Text("$totalItensCarrinho") }
+                            }
+                        }
+                    ) {
+                        IconButton(onClick = { navController.navigate("carrinho_screen/$userId") }) {
+                            Icon(
+                                imageVector = Icons.Default.ShoppingCart,
+                                contentDescription = "Carrinho de Compras"
+                            )
+                        }
+                    }
+                }
+            )
         }
     ) { paddingValues ->
+        // O resto da tela (Column, LazyColumn, etc.) continua igual
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -613,10 +602,22 @@ fun HomeScreen(
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(cursos) { curso ->
-                        CursoCard(curso = curso, onClick = {
-                            // AQUI ESTÁ A MUDANÇA: Navega para a nova rota passando o ID do curso
-                            navController.navigate("detalhes_curso/${curso.id}")
-                        })
+                        CursoCard(
+                            curso = curso,
+                            onCardClick = {
+                                navController.navigate("detalhes_curso/${curso.id}/$userId")
+                            },
+                            showAddToCartButton = true,
+                            onAddToCartClick = {
+                                if (userId != 0) {
+                                    carrinhoViewModel.adicionarItem(userId, curso.id) { sucesso, mensagem ->
+                                        Toast.makeText(context, mensagem, Toast.LENGTH_SHORT).show()
+                                    }
+                                } else {
+                                    Toast.makeText(context, "Faça login para adicionar ao carrinho.", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        )
                     }
                 }
             }
@@ -625,56 +626,70 @@ fun HomeScreen(
 }
 
 
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
-fun CursoCard(curso: Curso, onClick: () -> Unit) {
+fun CursoCard(
+    curso: Curso,
+    onCardClick: () -> Unit,
+    showAddToCartButton: Boolean,
+    onAddToCartClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        onClick = onClick,
-        shape = RoundedCornerShape(12.dp) // Cantos um pouco mais arredondados para estilo
+        shape = RoundedCornerShape(12.dp)
     ) {
-        // 1. O layout principal agora é uma Coluna para ter a imagem no topo
-        Column {
-            // 2. A imagem agora ocupa toda a largura do card, atuando como uma thumbnail
+        Column(
+            modifier = Modifier.clickable(onClick = onCardClick)
+        ) {
             AsyncImage(
                 model = curso.urlImagem ?: "https://i.imgur.com/l44jv9j.png",
                 contentDescription = "Capa do curso ${curso.titulo}",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(16f / 9f), // Proporção de vídeo/thumbnail (16:9)
-                contentScale = ContentScale.Crop // Garante que a imagem preencha o espaço sem distorcer
+                    .aspectRatio(16f / 9f),
+                contentScale = ContentScale.Crop
             )
 
-            // 3. Uma outra Coluna para agrupar as informações de texto com um padding geral
-            Column(modifier = Modifier.padding(16.dp)) {
-                // Título do curso com mais destaque
+            Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp)) {
                 Text(
                     text = curso.titulo,
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
-                    maxLines = 2, // No máximo 2 linhas para o título
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis // Adiciona "..." se o título for muito grande
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-
-                // Nome do instrutor, mais sutil
                 Text(
                     text = curso.nomeInstrutor,
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Preço com bastante destaque
-                Text(
-                    text = "R$ ${"%.2f".format(curso.preco)}",
-                    fontWeight = FontWeight.ExtraBold, // Fonte ainda mais forte para o preço
-                    color = colorResource(id = R.color.dark_green),
-                    fontSize = 18.sp
-                )
+            }
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 8.dp, bottom = 8.dp, top = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "R$ ${"%.2f".format(curso.preco)}",
+                fontWeight = FontWeight.ExtraBold,
+                color = colorResource(id = R.color.dark_green),
+                fontSize = 18.sp
+            )
+            if (showAddToCartButton) {
+                IconButton(onClick = onAddToCartClick) {
+                    Icon(
+                        imageVector = Icons.Default.AddShoppingCart,
+                        contentDescription = "Adicionar ao Carrinho",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
     }

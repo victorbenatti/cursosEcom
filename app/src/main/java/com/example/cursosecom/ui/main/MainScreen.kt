@@ -21,21 +21,29 @@ import com.example.cursosecom.navigation.BottomNavItem
 import com.example.cursosecom.ui.mycourses.MeusCursosScreen
 import com.example.cursosecom.ui.profile.PerfilScreen
 
+/**
+ * Tela principal que contém a barra de navegação inferior e gerencia as telas
+ * de Início, Meus Cursos e Perfil.
+ */
 @Composable
 fun MainScreen(navControllerApp: NavController, userId: Int) {
+    // NavController local para a navegação da barra inferior.
     val navControllerBottom = rememberNavController()
+
     val items = listOf(
         BottomNavItem.Home,
         BottomNavItem.MyCourses,
         BottomNavItem.Profile
     )
 
+    // Estrutura principal da tela com a barra de navegação na parte de baixo.
     Scaffold(
         bottomBar = {
             NavigationBar {
                 val navBackStackEntry by navControllerBottom.currentBackStackEntryAsState()
                 val currentDestination = navBackStackEntry?.destination
 
+                // Cria os ícones na barra de navegação.
                 items.forEach { screen ->
                     NavigationBarItem(
                         icon = { Icon(screen.icon, contentDescription = screen.label) },
@@ -55,12 +63,14 @@ fun MainScreen(navControllerApp: NavController, userId: Int) {
             }
         }
     ) { innerPadding ->
+        // "Miolo" da tela, onde o conteúdo de cada aba é exibido.
         NavHost(
             navController = navControllerBottom,
             startDestination = BottomNavItem.Home.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(BottomNavItem.Home.route) { HomeScreen(navController = navControllerApp) }
+            // Define qual tela será exibida para cada rota da barra inferior.
+            composable(BottomNavItem.Home.route) { HomeScreen(navController = navControllerApp, userId = userId) }
             composable(BottomNavItem.MyCourses.route) { MeusCursosScreen(navController = navControllerApp, userId = userId) }
             composable(BottomNavItem.Profile.route) { PerfilScreen(navController = navControllerApp, userId = userId) }
         }

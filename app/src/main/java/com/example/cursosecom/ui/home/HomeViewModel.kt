@@ -12,12 +12,15 @@ import com.google.gson.Gson
 import kotlinx.coroutines.launch
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.http.Field
+import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
+import retrofit2.http.POST
 import retrofit2.http.Query
 
 // --- Interface para definir os endpoints da API com Retrofit ---
 interface ApiService {
-    @GET("listar_cursos.php") // O caminho do seu script no servidor
+    @GET("listar_cursos.php")
     suspend fun getCursos(): List<Curso>
 
     @GET("detalhes_curso.php")
@@ -28,7 +31,30 @@ interface ApiService {
 
     @GET("meus_cursos.php")
     suspend fun getMeusCursos(@Query("usuario_id") usuarioId: Int): List<Curso>
+
+    // --- NOVOS ENDPOINTS PARA O CARRINHO ---
+
+    @GET("listar_carrinho.php")
+    suspend fun getItensCarrinho(@Query("usuario_id") usuarioId: Int): List<Curso>
+
+    @POST("adicionar_carrinho.php")
+    @FormUrlEncoded
+    suspend fun adicionarAoCarrinho(
+        @Field("usuario_id") usuarioId: Int,
+        @Field("curso_id") cursoId: Int
+    ): ResponseStatus
+
+    @POST("remover_carrinho.php")
+    @FormUrlEncoded
+    suspend fun removerDoCarrinho(
+        @Field("usuario_id") usuarioId: Int,
+        @Field("curso_id") cursoId: Int
+    ): ResponseStatus
 }
+
+// NOVO: Data class para representar respostas de status simples (ex: ok/erro)
+data class ResponseStatus(val status: String, val mensagem: String)
+
 
 // --- Objeto para criar uma instância única do Retrofit ---
 object RetrofitClient {

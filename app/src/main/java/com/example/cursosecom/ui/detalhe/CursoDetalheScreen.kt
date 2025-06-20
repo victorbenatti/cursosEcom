@@ -1,11 +1,13 @@
 package com.example.cursosecom.ui.detalhe
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AddShoppingCart
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayCircleOutline
 import androidx.compose.material.icons.filled.SignalCellularAlt
@@ -18,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -28,22 +31,26 @@ import coil.compose.AsyncImage
 import com.example.cursosecom.R
 import com.example.cursosecom.data.model.Aula
 import com.example.cursosecom.data.model.CursoDetalhado
+import com.example.cursosecom.ui.cart.CarrinhoViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CursoDetalheScreen(
     navController: NavController,
     cursoId: Int,
-    possuiCurso: Boolean, // <-- PARÂMETRO NECESSÁRIO
-    viewModel: CursoDetalheViewModel = viewModel()
+    userId: Int, // <-- NOVO PARÂMETRO NECESSÁRIO
+    possuiCurso: Boolean,
+    detalheViewModel: CursoDetalheViewModel = viewModel(),
+    carrinhoViewModel: CarrinhoViewModel = viewModel() // <-- NOVO VIEWMODEL
 ) {
     LaunchedEffect(key1 = cursoId) {
-        viewModel.fetchCursoDetalhes(cursoId)
+        detalheViewModel.fetchCursoDetalhes(cursoId)
     }
 
-    val curso = viewModel.cursoState.value
-    val isLoading = viewModel.isLoading.value
-    val error = viewModel.error.value
+    val curso = detalheViewModel.cursoState.value
+    val isLoading = detalheViewModel.isLoading.value
+    val error = detalheViewModel.error.value
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -56,16 +63,24 @@ fun CursoDetalheScreen(
                 }
             )
         },
-        // ALTERADO: A barra inferior agora é condicional
         bottomBar = {
-            // O botão de comprar só aparece se o usuário NÃO possuir o curso
+            // O botão só aparece se o usuário NÃO possuir o curso
             if (!possuiCurso && curso != null) {
                 BottomAppBar(
                     containerColor = MaterialTheme.colorScheme.surface,
                     modifier = Modifier.height(80.dp)
                 ) {
                     Button(
-                        onClick = { /* Lógica de compra futura */ },
+                        // ALTERADO: A lógica agora chama o CarrinhoViewModel
+                        onClick = {
+                            if (userId != 0) {
+                                carrinhoViewModel.adicionarItem(userId, curso.id) { sucesso, mensagem ->
+                                    Toast.makeText(context, mensagem, Toast.LENGTH_SHORT).show()
+                                }
+                            } else {
+                                Toast.makeText(context, "Erro: Usuário não identificado.", Toast.LENGTH_SHORT).show()
+                            }
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -75,12 +90,16 @@ fun CursoDetalheScreen(
                         ),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("Comprar por R$ ${"%.2f".format(curso.preco)}", fontSize = 18.sp, color = Color.Black, fontWeight = FontWeight.Bold)
+                        // ALTERADO: O texto e o ícone do botão
+                        Icon(Icons.Default.AddShoppingCart, contentDescription = "Adicionar ao Carrinho")
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Adicionar ao Carrinho", fontSize = 18.sp, color = Color.Black, fontWeight = FontWeight.Bold)
                     }
                 }
             }
         }
     ) { paddingValues ->
+        // O resto do layout da tela continua o mesmo
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -123,7 +142,6 @@ fun CursoDetalheScreen(
                             horizontalArrangement = Arrangement.SpaceAround
                         ) {
                             InfoPill(icon = Icons.Default.Person, text = curso.nomeInstrutor)
-                            // ALTERADO: Usa o dado dinâmico do nível de dificuldade
                             InfoPill(icon = Icons.Default.SignalCellularAlt, text = curso.nivelDificuldade)
                         }
                     }
@@ -159,7 +177,6 @@ fun CursoDetalheScreen(
     }
 }
 
-// Componente InfoPill (sem alterações)
 @Composable
 fun InfoPill(icon: ImageVector, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -169,8 +186,6 @@ fun InfoPill(icon: ImageVector, text: String) {
     }
 }
 
-
-// Componente AulaItem (sem alterações)
 @Composable
 fun AulaItem(aula: Aula) {
     Row(
