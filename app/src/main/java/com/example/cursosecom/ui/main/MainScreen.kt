@@ -61,7 +61,7 @@ fun MainScreen(navControllerApp: NavController, userId: Int) {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(BottomNavItem.Home.route) { HomeScreen(navController = navControllerApp) }
-            composable(BottomNavItem.MyCourses.route) { MeusCursosScreen() }
+            composable(BottomNavItem.MyCourses.route) { MeusCursosScreen(navController = navControllerApp, userId = userId) }
             composable(BottomNavItem.Profile.route) { PerfilScreen(navController = navControllerApp, userId = userId) }
         }
     }

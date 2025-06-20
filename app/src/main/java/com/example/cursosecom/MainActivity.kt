@@ -129,12 +129,28 @@ class MainActivity : ComponentActivity() {
                     }
 
                     composable(
-                        route = "detalhes_curso/{cursoId}",
-                        arguments = listOf(navArgument("cursoId") { type = NavType.IntType })
+                        // A ROTA AGORA ACEITA UM NOVO PARÂMETRO OPCIONAL
+                        route = "detalhes_curso/{cursoId}?possuiCurso={possuiCurso}",
+                        arguments = listOf(
+                            navArgument("cursoId") { type = NavType.IntType },
+                            // Define o novo argumento, que é booleano e tem valor padrão 'false'
+                            navArgument("possuiCurso") {
+                                type = NavType.BoolType
+                                defaultValue = false
+                            }
+                        )
                     ) { backStackEntry ->
-                        val cursoId = backStackEntry.arguments?.getInt("cursoId")
-                        if (cursoId != null) {
-                            CursoDetalheScreen(navController = navController, cursoId = cursoId)
+                        // Extrai os argumentos da rota
+                        val cursoId = backStackEntry.arguments?.getInt("cursoId") ?: 0
+                        val possuiCurso = backStackEntry.arguments?.getBoolean("possuiCurso") ?: false
+
+                        // Passa a nova informação para a tela de detalhes
+                        if (cursoId != 0) {
+                            CursoDetalheScreen(
+                                navController = navController,
+                                cursoId = cursoId,
+                                possuiCurso = possuiCurso // Passando o novo parâmetro
+                            )
                         }
                     }
                 }

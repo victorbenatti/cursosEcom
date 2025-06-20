@@ -3,11 +3,9 @@ package com.example.cursosecom.ui.detalhe
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayCircleOutline
 import androidx.compose.material.icons.filled.SignalCellularAlt
@@ -27,15 +25,16 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.example.cursosecom.R // NOVO: Import para acessar as cores do colors.xml
+import com.example.cursosecom.R
 import com.example.cursosecom.data.model.Aula
-import com.example.cursosecom.data.model.CursoDetalhado // NOVO: Import da classe correta
+import com.example.cursosecom.data.model.CursoDetalhado
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CursoDetalheScreen(
     navController: NavController,
     cursoId: Int,
+    possuiCurso: Boolean, // <-- PARÂMETRO NECESSÁRIO
     viewModel: CursoDetalheViewModel = viewModel()
 ) {
     LaunchedEffect(key1 = cursoId) {
@@ -46,7 +45,6 @@ fun CursoDetalheScreen(
     val isLoading = viewModel.isLoading.value
     val error = viewModel.error.value
 
-    // ALTERADO: A estrutura principal agora é um Scaffold que pode ter uma barra inferior
     Scaffold(
         topBar = {
             TopAppBar(
@@ -58,9 +56,10 @@ fun CursoDetalheScreen(
                 }
             )
         },
-        // NOVO: Barra inferior para o botão de compra
+        // ALTERADO: A barra inferior agora é condicional
         bottomBar = {
-            if (curso != null) {
+            // O botão de comprar só aparece se o usuário NÃO possuir o curso
+            if (!possuiCurso && curso != null) {
                 BottomAppBar(
                     containerColor = MaterialTheme.colorScheme.surface,
                     modifier = Modifier.height(80.dp)
@@ -72,7 +71,7 @@ fun CursoDetalheScreen(
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                             .height(56.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = colorResource(id = R.color.splash_yellow) // Usando a cor amarela
+                            containerColor = colorResource(id = R.color.splash_yellow)
                         ),
                         shape = RoundedCornerShape(12.dp)
                     ) {
@@ -93,12 +92,10 @@ fun CursoDetalheScreen(
             } else if (error != null) {
                 Text(text = error, color = Color.Red, modifier = Modifier.padding(16.dp))
             } else if (curso != null) {
-                // ALTERADO: O padding inferior da LazyColumn foi aumentado para não sobrepor o botão
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 16.dp)
                 ) {
-                    // Item da imagem (sem alterações)
                     item {
                         AsyncImage(
                             model = curso.urlImagem ?: "https://i.imgur.com/l44jv9j.png",
@@ -110,7 +107,6 @@ fun CursoDetalheScreen(
                         )
                     }
 
-                    // Item do Título e Subtítulo
                     item {
                         Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp)) {
                             Text(curso.titulo, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
@@ -119,7 +115,6 @@ fun CursoDetalheScreen(
                         }
                     }
 
-                    // NOVO: Bloco de informações com Ícones
                     item {
                         Row(
                             modifier = Modifier
@@ -128,12 +123,11 @@ fun CursoDetalheScreen(
                             horizontalArrangement = Arrangement.SpaceAround
                         ) {
                             InfoPill(icon = Icons.Default.Person, text = curso.nomeInstrutor)
-                            // A API e o Model precisariam ter o nível, mas como exemplo:
+                            // ALTERADO: Usa o dado dinâmico do nível de dificuldade
                             InfoPill(icon = Icons.Default.SignalCellularAlt, text = curso.nivelDificuldade)
                         }
                     }
 
-                    // NOVO: Card para a descrição do curso
                     item {
                         Card(
                             modifier = Modifier.padding(horizontal = 16.dp),
@@ -149,7 +143,6 @@ fun CursoDetalheScreen(
                         }
                     }
 
-                    // Header da lista de aulas
                     item {
                         Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 24.dp)) {
                             Text("Aulas do Curso", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
@@ -157,7 +150,6 @@ fun CursoDetalheScreen(
                         }
                     }
 
-                    // Lista de aulas
                     items(curso.aulas) { aula ->
                         AulaItem(aula = aula)
                     }
@@ -167,7 +159,7 @@ fun CursoDetalheScreen(
     }
 }
 
-// NOVO: Componente para as "pílulas" de informação
+// Componente InfoPill (sem alterações)
 @Composable
 fun InfoPill(icon: ImageVector, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -178,7 +170,7 @@ fun InfoPill(icon: ImageVector, text: String) {
 }
 
 
-// ALTERADO: AulaItem com um visual mais elaborado
+// Componente AulaItem (sem alterações)
 @Composable
 fun AulaItem(aula: Aula) {
     Row(

@@ -2,7 +2,6 @@ package com.example.cursosecom.data.model
 
 import com.google.gson.annotations.SerializedName
 
-// Esta data class representa um curso, exatamente como ele vem da API (vw_cursosdisponiveis)
 data class Curso(
     @SerializedName("id_curso")
     val id: Int,
@@ -11,7 +10,7 @@ data class Curso(
     val titulo: String,
 
     @SerializedName("subtitulo_curso")
-    val subtitulo: String?, // Pode ser nulo
+    val subtitulo: String?,
 
     @SerializedName("preco_curso")
     val preco: Double,
@@ -20,5 +19,9 @@ data class Curso(
     val nomeInstrutor: String,
 
     @SerializedName("url_imagem_capa_curso")
-    val urlImagem: String? // Pode ser nulo
+    val urlImagem: String?,
+
+    // NOVO: Campo opcional para o progresso
+    @SerializedName("percentual_concluido")
+    val percentualConcluido: Int? = null
 )

@@ -25,6 +25,9 @@ interface ApiService {
 
     @GET("perfil.php")
     suspend fun getPerfilUsuario(@Query("usuario_id") usuarioId: Int): PerfilUsuario
+
+    @GET("meus_cursos.php")
+    suspend fun getMeusCursos(@Query("usuario_id") usuarioId: Int): List<Curso>
 }
 
 // --- Objeto para criar uma instância única do Retrofit ---
