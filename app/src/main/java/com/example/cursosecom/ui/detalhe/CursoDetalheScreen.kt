@@ -30,21 +30,24 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.cursosecom.R
 import com.example.cursosecom.data.model.Aula
-import com.example.cursosecom.data.model.CursoDetalhado
 import com.example.cursosecom.ui.cart.CarrinhoViewModel
+import androidx.compose.foundation.clickable
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CursoDetalheScreen(
     navController: NavController,
     cursoId: Int,
-    userId: Int, // <-- NOVO PARÂMETRO NECESSÁRIO
+    userId: Int,
     possuiCurso: Boolean,
     detalheViewModel: CursoDetalheViewModel = viewModel(),
-    carrinhoViewModel: CarrinhoViewModel = viewModel() // <-- NOVO VIEWMODEL
+    carrinhoViewModel: CarrinhoViewModel = viewModel()
 ) {
-    LaunchedEffect(key1 = cursoId) {
-        detalheViewModel.fetchCursoDetalhes(cursoId)
+    // ALTERADO: O LaunchedEffect agora também passa o userId
+    LaunchedEffect(key1 = cursoId, key2 = userId) {
+        detalheViewModel.fetchCursoDetalhes(cursoId, userId)
     }
 
     val curso = detalheViewModel.cursoState.value
@@ -64,14 +67,12 @@ fun CursoDetalheScreen(
             )
         },
         bottomBar = {
-            // O botão só aparece se o usuário NÃO possuir o curso
             if (!possuiCurso && curso != null) {
                 BottomAppBar(
                     containerColor = MaterialTheme.colorScheme.surface,
                     modifier = Modifier.height(80.dp)
                 ) {
                     Button(
-                        // ALTERADO: A lógica agora chama o CarrinhoViewModel
                         onClick = {
                             if (userId != 0) {
                                 carrinhoViewModel.adicionarItem(userId, curso.id) { sucesso, mensagem ->
@@ -90,7 +91,6 @@ fun CursoDetalheScreen(
                         ),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        // ALTERADO: O texto e o ícone do botão
                         Icon(Icons.Default.AddShoppingCart, contentDescription = "Adicionar ao Carrinho")
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Adicionar ao Carrinho", fontSize = 18.sp, color = Color.Black, fontWeight = FontWeight.Bold)
@@ -99,7 +99,6 @@ fun CursoDetalheScreen(
             }
         }
     ) { paddingValues ->
-        // O resto do layout da tela continua o mesmo
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -168,8 +167,28 @@ fun CursoDetalheScreen(
                         }
                     }
 
+                    // LÓGICA DE AULAS ALTERADA
                     items(curso.aulas) { aula ->
-                        AulaItem(aula = aula)
+                        AulaItem(
+                            aula = aula,
+                            isClickable = possuiCurso,
+                            onAulaCheckChanged = { concluida ->
+                                detalheViewModel.marcarAulaComoConcluida(userId, aula.id, concluida) { sucesso, mensagem ->
+                                    Toast.makeText(context, mensagem, Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            // NOVO: Lógica de clique
+                            onAulaClick = {
+                                // Só navega se a URL do vídeo não for nula ou vazia
+                                if (!aula.urlVideo.isNullOrEmpty()) {
+                                    // Codifica a URL para passar como argumento de forma segura
+                                    val encodedUrl = URLEncoder.encode(aula.urlVideo, StandardCharsets.UTF_8.toString())
+                                    navController.navigate("video_player/$encodedUrl")
+                                } else {
+                                    Toast.makeText(context, "Vídeo indisponível para esta aula.", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        )
                     }
                 }
             }
@@ -187,11 +206,19 @@ fun InfoPill(icon: ImageVector, text: String) {
 }
 
 @Composable
-fun AulaItem(aula: Aula) {
+fun AulaItem(
+    aula: Aula,
+    isClickable: Boolean,
+    onAulaCheckChanged: (Boolean) -> Unit,
+    // NOVO: Adiciona um callback para o clique na aula
+    onAulaClick: () -> Unit
+) {
+    // ALTERADO: Adicionado o modifier clickable
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .clickable(enabled = isClickable, onClick = onAulaClick) // O clique acontece na linha inteira
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -203,8 +230,15 @@ fun AulaItem(aula: Aula) {
         Spacer(modifier = Modifier.width(16.dp))
         Text(
             text = "${aula.ordem}. ${aula.titulo}",
-            style = MaterialTheme.typography.bodyLarge
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f)
         )
+        if (isClickable) {
+            Checkbox(
+                checked = aula.concluida,
+                onCheckedChange = onAulaCheckChanged
+            )
+        }
     }
     Divider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
 }

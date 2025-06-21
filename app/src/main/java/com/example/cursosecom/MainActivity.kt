@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Badge
 import androidx.compose.material3.IconButton
+import androidx.compose.ui.draw.clip
 import coil.compose.AsyncImage
 import com.example.cursosecom.data.model.Curso
 import com.example.cursosecom.ui.cart.CarrinhoScreen
@@ -47,13 +48,17 @@ import com.example.cursosecom.ui.detalhe.CursoDetalheScreen
 import com.example.cursosecom.ui.home.HomeViewModel
 import com.example.cursosecom.ui.main.MainScreen
 import com.example.cursosecom.ui.theme.CursosEcomTheme
+import com.example.cursosecom.ui.video.VideoPlayerScreen // NOVO IMPORT
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLDecoder // NOVO IMPORT
 import java.net.URLEncoder
+import java.nio.charset.StandardCharsets // NOVO IMPORT
+
 
 // -----------------------------------------------------------------
 // FIM DOS IMPORTS
@@ -88,7 +93,6 @@ class MainActivity : ComponentActivity() {
                         CarrinhoScreen(navController = navController, userId = userId)
                     }
 
-                    // ROTA DE DETALHES CORRIGIDA
                     composable(
                         route = "detalhes_curso/{cursoId}/{userId}?possuiCurso={possuiCurso}",
                         arguments = listOf(
@@ -111,6 +115,19 @@ class MainActivity : ComponentActivity() {
                                 userId = userId,
                                 possuiCurso = possuiCurso
                             )
+                        }
+                    }
+
+                    // NOVA ROTA PARA O PLAYER DE VÍDEO
+                    composable(
+                        route = "video_player/{videoUrl}",
+                        arguments = listOf(navArgument("videoUrl") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val encodedUrl = backStackEntry.arguments?.getString("videoUrl") ?: ""
+                        // Decodifica a URL para seu formato original
+                        val decodedUrl = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.toString())
+                        if (decodedUrl.isNotEmpty()) {
+                            VideoPlayerScreen(navController = navController, videoUrl = decodedUrl)
                         }
                     }
                 }
@@ -667,29 +684,58 @@ fun CursoCard(
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
-            }
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 8.dp, bottom = 8.dp, top = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "R$ ${"%.2f".format(curso.preco)}",
-                fontWeight = FontWeight.ExtraBold,
-                color = colorResource(id = R.color.dark_green),
-                fontSize = 18.sp
-            )
-            if (showAddToCartButton) {
-                IconButton(onClick = onAddToCartClick) {
-                    Icon(
-                        imageVector = Icons.Default.AddShoppingCart,
-                        contentDescription = "Adicionar ao Carrinho",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+
+                // Seção de progresso, só aparece se o percentual existir
+                curso.percentualConcluido?.let { progresso ->
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Column {
+                        LinearProgressIndicator(
+                            progress = { progresso / 100f },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(8.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "$progresso% concluído",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.align(Alignment.End)
+                        )
+                    }
                 }
+            }
+
+            // A lógica do botão de preço/adicionar ao carrinho só aparece se não for um curso com progresso
+            if (curso.percentualConcluido == null) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 8.dp, bottom = 8.dp, top = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "R$ ${"%.2f".format(curso.preco)}",
+                        fontWeight = FontWeight.ExtraBold,
+                        color = colorResource(id = R.color.dark_green),
+                        fontSize = 18.sp
+                    )
+                    if (showAddToCartButton) {
+                        IconButton(onClick = onAddToCartClick) {
+                            Icon(
+                                imageVector = Icons.Default.AddShoppingCart,
+                                contentDescription = "Adicionar ao Carrinho",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+            } else {
+                // Adiciona um espaçamento no final do card para cursos com progresso
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }

@@ -32,10 +32,14 @@ interface ApiService {
     @GET("meus_cursos.php")
     suspend fun getMeusCursos(@Query("usuario_id") usuarioId: Int): List<Curso>
 
-    // --- NOVOS ENDPOINTS PARA O CARRINHO ---
-
     @GET("listar_carrinho.php")
     suspend fun getItensCarrinho(@Query("usuario_id") usuarioId: Int): List<Curso>
+
+    @GET("detalhes_curso.php")
+    suspend fun getCursoDetalhes(
+        @Query("id") cursoId: Int,
+        @Query("usuario_id") usuarioId: Int // <-- NOVO PARÂMETRO
+    ): CursoDetalhado
 
     @POST("adicionar_carrinho.php")
     @FormUrlEncoded
@@ -50,9 +54,26 @@ interface ApiService {
         @Field("usuario_id") usuarioId: Int,
         @Field("curso_id") cursoId: Int
     ): ResponseStatus
+
+    // --- NOVOS ENDPOINTS ---
+
+    @POST("finalizar_compra.php")
+    @FormUrlEncoded
+    suspend fun finalizarCompra(
+        @Field("usuario_id") usuarioId: Int
+    ): ResponseStatus
+
+    @POST("marcar_aula_concluida.php")
+    @FormUrlEncoded
+    suspend fun marcarAulaComoConcluida(
+        @Field("usuario_id") usuarioId: Int,
+        @Field("aula_id") aulaId: Int,
+        @Field("status_conclusao") status: Int // 1 para concluída, 0 para não
+    ): ResponseStatus
 }
 
-// NOVO: Data class para representar respostas de status simples (ex: ok/erro)
+
+// Data class para representar respostas de status simples (ex: ok/erro)
 data class ResponseStatus(val status: String, val mensagem: String)
 
 
@@ -73,7 +94,6 @@ object RetrofitClient {
 // --- ViewModel para a HomeScreen ---
 class HomeViewModel : ViewModel() {
 
-    // Estado para a UI: pode ser Carregando, Sucesso com dados, ou Erro
     private val _cursosState = mutableStateOf<List<Curso>>(emptyList())
     val cursosState: State<List<Curso>> = _cursosState
 

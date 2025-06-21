@@ -1,7 +1,6 @@
 package com.example.cursosecom.ui.cart
 
 import android.widget.Toast
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,6 +12,10 @@ import androidx.compose.material.icons.filled.ShoppingCartCheckout
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,6 +31,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.cursosecom.data.model.Curso
+import com.example.cursosecom.navigation.BottomNavItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,16 +40,16 @@ fun CarrinhoScreen(
     userId: Int,
     viewModel: CarrinhoViewModel = viewModel()
 ) {
-    // Busca os itens do carrinho sempre que a tela for carregada com um novo userId
     LaunchedEffect(key1 = userId) {
         if (userId != 0) {
             viewModel.fetchItensCarrinho(userId)
         }
     }
 
-    val itens = viewModel.itens.value
-    val precoTotal = viewModel.precoTotal.value
+    val itens by viewModel.itens
+    val precoTotal by viewModel.precoTotal
     val context = LocalContext.current
+    var isCheckingOut by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -59,7 +63,6 @@ fun CarrinhoScreen(
             )
         },
         bottomBar = {
-            // A barra inferior só aparece se o carrinho não estiver vazio
             if (itens.isNotEmpty()) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -85,17 +88,35 @@ fun CarrinhoScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                         Button(
                             onClick = {
-                                // Lógica futura para chamar a procedure de finalização de compra
-                                Toast.makeText(context, "Funcionalidade de Finalizar Compra em breve!", Toast.LENGTH_SHORT).show()
+                                isCheckingOut = true
+                                viewModel.finalizarCompra(userId) { sucesso, mensagem ->
+                                    Toast.makeText(context, mensagem, Toast.LENGTH_LONG).show()
+                                    if (sucesso) {
+                                        // Navega para a tela principal, e de lá para "Meus Cursos"
+                                        navController.navigate("main_screen/$userId") {
+                                            // Limpa toda a pilha de navegação até o login
+                                            popUpTo("login") { inclusive = true }
+                                        }
+                                    }
+                                    isCheckingOut = false
+                                }
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(50.dp),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            enabled = !isCheckingOut // Desabilita o botão durante o processo
                         ) {
-                            Icon(Icons.Default.ShoppingCartCheckout, contentDescription = "Finalizar Compra")
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Finalizar Compra", fontSize = 18.sp)
+                            if (isCheckingOut) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                            } else {
+                                Icon(Icons.Default.ShoppingCartCheckout, contentDescription = "Finalizar Compra")
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Finalizar Compra", fontSize = 18.sp)
+                            }
                         }
                     }
                 }
@@ -107,8 +128,7 @@ fun CarrinhoScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            if (itens.isEmpty()) {
-                // Mensagem para quando o carrinho está vazio
+            if (itens.isEmpty() && !isCheckingOut) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -121,7 +141,6 @@ fun CarrinhoScreen(
                     )
                 }
             } else {
-                // Lista de cursos no carrinho
                 LazyColumn(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
